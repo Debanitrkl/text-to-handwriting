@@ -6,7 +6,7 @@ import {
 import { createPDF } from './utils/helpers.mjs';
 
 const pageEl = document.querySelector('.page-a');
-const outputImages = [];
+let outputImages = [];
 
 /**
  * To generate image, we add styles to DIV and converts that HTML Element into Image.
@@ -16,7 +16,8 @@ async function convertDIVToImage() {
   const options = {
     scrollX: 0,
     scrollY: -window.scrollY,
-    scale: document.querySelector('#resolution').value
+    scale: document.querySelector('#resolution').value,
+    useCORS: true
   };
 
   /** Function html2canvas comes from a library html2canvas which is included in the index.html */
@@ -43,7 +44,7 @@ async function convertDIVToImage() {
  */
 export async function generateImages() {
   applyPaperStyles();
-  pageEl.scrollTo(0, 0);
+  pageEl.scroll(0, 0);
 
   const paperContentEl = document.querySelector('.page-a .paper-content');
   const scrollHeight = paperContentEl.scrollHeight;
@@ -94,6 +95,40 @@ export async function generateImages() {
 }
 
 /**
+ * Delete all generated images
+ */
+
+export const deleteAll = () => {
+  outputImages.splice(0, outputImages.length);
+  renderOutput(outputImages);
+  document.querySelector('#output-header').textContent =
+    'Output' + (outputImages.length ? ' ( ' + outputImages.length + ' )' : '');
+};
+
+const arrayMove = (arr, oldIndex, newIndex) => {
+  if (newIndex >= arr.length) {
+    let k = newIndex - arr.length + 1;
+    while (k--) {
+      arr.push(undefined);
+    }
+  }
+  arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0]);
+  return arr; // for testing
+};
+
+export const moveLeft = (index) => {
+  if (index === 0) return outputImages;
+  outputImages = arrayMove(outputImages, index, index - 1);
+  renderOutput(outputImages);
+};
+
+export const moveRight = (index) => {
+  if (index + 1 === outputImages.length) return outputImages;
+  outputImages = arrayMove(outputImages, index, index + 1);
+  renderOutput(outputImages);
+};
+
+/**
  * Downloads generated images as PDF
  */
 export const downloadAsPDF = () => createPDF(outputImages);
@@ -118,6 +153,26 @@ function setRemoveImageListeners() {
         setRemoveImageListeners();
       });
     });
+
+  document.querySelectorAll('.move-left').forEach((leftButton) => {
+    leftButton.addEventListener('click', (e) => {
+      moveLeft(Number(e.target.dataset.index));
+      // Displaying no. of images on deletion
+      renderOutput(outputImages);
+      // When output changes, we have to set remove listeners again
+      setRemoveImageListeners();
+    });
+  });
+
+  document.querySelectorAll('.move-right').forEach((rightButton) => {
+    rightButton.addEventListener('click', (e) => {
+      moveRight(Number(e.target.dataset.index));
+      // Displaying no. of images on deletion
+      renderOutput(outputImages);
+      // When output changes, we have to set remove listeners again
+      setRemoveImageListeners();
+    });
+  });
 }
 
 /** Modifies image data to add contrast */
